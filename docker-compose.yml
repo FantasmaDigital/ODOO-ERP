@@ -24,16 +24,17 @@ services:
       - BACKUP_SUFFIX=.sql
   web:
     build: .
-    # image: odoo:19.0
     depends_on:
       - db
     ports:
       - "8069:8069"
     volumes:
       - ./extra-addons:/mnt/extra-addons
-    command: 
-      - odoo
-      - --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons/themes,/mnt/extra-addons/custom,/mnt/extra-addons/third-party
+      - ./config:/etc/odoo
+    # IMPORTANTE: Añadimos -c /etc/odoo/odoo.conf al principio del comando
+    command: >
+      odoo -c /etc/odoo/odoo.conf
+      --addons-path=/usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons/themes,/mnt/extra-addons/custom,/mnt/extra-addons/third-party
     environment:
       - HOST=db
       - USER=odoo

@@ -1,37 +1,54 @@
-# --- Script de Configuración Inicial para Odoo ERP ---
+# 1. Verificar si Docker esta activo
+$dockerReady = $false
+$retries = 0
 
-Write-Host "--- Iniciando instalación del ERP ---" -ForegroundColor Cyan
-
-# 1. Crear estructura de carpetas si no existe
-$folders = @("data", "data/postgres", "data/odoo", "extra-addons", "config", "backups")
-foreach ($folder in $folders) {
-    if (-not (Test-Path $folder)) {
-        New-Item -Path $folder -ItemType Directory
-        Write-Host "[+] Carpeta $folder creada." -ForegroundColor Green
+while (-not $dockerReady -and $retries -lt 10) {
+    docker info >$null 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        $dockerReady = $true
+        Write-Host "Docker esta ONLINE."
+    } else {
+        Write-Host "Esperando a Docker... ($($retries + 1)/10)"
+        if (-not (Get-Process "Docker Desktop" -ErrorAction SilentlyContinue)) {
+            Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+        }
+        Start-Sleep -Seconds 10
+        $retries++
     }
 }
 
-# 2. Crear archivo .gitkeep en data para mantener la estructura
-if (-not (Test-Path "data/.gitkeep")) {
-    New-Item -Path "data/.gitkeep" -ItemType File
+if (-not $dockerReady) {
+    Write-Host "ERROR: Docker no arranco correctamente."
+    exit
 }
 
-# 3. Limpiar contenedores antiguos para evitar conflictos
-Write-Host "[-] Limpiando instalaciones previas..." -ForegroundColor Yellow
-docker-compose down --volumes --remove-orphans
+# 2. Limpieza de contenedores y volumenes viejos
+Write-Host "Limpiando instalaciones previas..."
+docker-compose down -v --remove-orphans
 
-# 4. Levantar los servicios
-Write-Host "[>] Levantando servidores Docker..." -ForegroundColor Cyan
-docker-compose up -d
+# 3. Crear carpetas de datos
+$folders = @("data", "data/postgres", "data/odoo", "extra-addons", "config", "backups")
+foreach ($folder in $folders) {
+    if (-not (Test-Path $folder)) {
+        New-Item -Path $folder -ItemType Directory -Force
+    }
+}
 
-# 5. Esperar a que el contenedor esté listo e instalar librerías de MuK
-Write-Host "[!] Esperando 15 segundos para la inicialización del sistema..." -ForegroundColor Gray
-Start-Sleep -Seconds 15
+# 4. Levantar el proyecto
+Write-Host "Levantando contenedores..."
+docker-compose up -d --build --force-recreate
 
-Write-Host "[+] Instalando librerías de Python necesarias (MuK)..." -ForegroundColor Green
-docker exec -u root -it $(docker ps -qf "name=web") pip3 install num2words premailer lyra --break-system-packages
+# 5. Pausa para que el sistema cargue
+Write-Host "Esperando 25 segundos..."
+Start-Sleep -Seconds 25
 
-Write-Host "---"
-Write-Host "¡TODO LISTO!" -ForegroundColor Green
-Write-Host "Accede a: http://localhost:8069" -ForegroundColor BrightWhite
-Write-Host "Master Password configurada en docker-compose.yml" -ForegroundColor Yellow
+# 6. Instalacion de librerias Python necesarias
+$containerName = docker ps --filter "name=web" --format "{{.Names}}" | Select-Object -First 1
+
+if ($containerName) {
+    Write-Host "Instalando librerias en $containerName"
+    docker exec -u root -t $containerName pip3 install num2words premailer lyra --break-system-packages
+    Write-Host "LISTO: Accede a http://localhost:8069"
+} else {
+    Write-Host "ERROR: El contenedor web no se encuentra ejecutandose."
+}
