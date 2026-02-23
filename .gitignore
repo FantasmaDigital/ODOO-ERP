@@ -1,0 +1,28 @@
+# --- Odoo & Docker Environment ---
+
+# Ignorar la carpeta de base de datos y sesiones (EVITA EL ERROR DE PERMISOS)
+data/
+
+# Ignorar logs del sistema y errores
+*.log
+
+# --- Python ---
+
+# No subir archivos compilados de Python
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# --- Configuraciones Sensibles ---
+
+# No subir el archivo de configuración si contiene contraseñas reales
+# config/odoo.conf
+
+# --- Otros ---
+
+# Archivos temporales de Windows o editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
