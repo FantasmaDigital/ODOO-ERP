@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data>
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+      <field name="name">res.config.settings.view.form.inherit.account</field>
+      <field name="model">res.config.settings</field>
+      <field name="priority" eval="40"/>
+      <field name="inherit_id" ref="account.res_config_settings_view_form"/>
+      <field name="arch" type="xml">
+        <!-- Odoo 19: append a new <app> settings block after all existing account blocks -->
+        <xpath expr="//app[last()]" position="after">
+          <app string="Facturación El Salvador" name="account_sv" groups="account.group_account_user">
+            <block name="account_sv_block" title="Opciones El Salvador">
+              <setting id="invoice_line_number_setting" string="Límite de líneas por factura">
+                <field name="invoice_line_number"/>
+                <div class="text-muted">
+                  Número máximo de líneas por factura. 0 = sin límite.
+                </div>
+              </setting>
+              <setting id="p_u_partner_setting" string="Solo pago del socio titular">
+                <field name="p_u_partner"/>
+                <div class="text-muted">
+                  Muestra solo los pagos del socio titular en la factura.
+                </div>
+              </setting>
+            </block>
+          </app>
+        </xpath>
+      </field>
+    </record>
+  </data>
+</odoo>
